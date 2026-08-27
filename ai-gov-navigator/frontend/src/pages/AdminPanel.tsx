@@ -34,13 +34,13 @@ export default function AdminPanel() {
   const [isScanning, setIsScanning] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'pending' | 'active'>('pending')
-  const [parentApiUrl, setParentApiUrl] = useState('http://localhost:8001/dummygov/api/master')
+  const [parentApiUrl, setParentApiUrl] = useState('/dummygov/api/master')
 
   const fetchData = async () => {
     try {
       const [draftsRes, servicesRes] = await Promise.all([
-        axios.get('http://localhost:8000/aigov/api/v1/admin/drafts'),
-        axios.get('http://localhost:8000/aigov/api/v1/admin/services')
+        axios.get('/aigov/api/v1/admin/drafts'),
+        axios.get('/aigov/api/v1/admin/services')
       ])
       setDrafts(draftsRes.data)
       setServices(servicesRes.data)
@@ -58,7 +58,7 @@ export default function AdminPanel() {
   const handleScan = async () => {
     setIsScanning(true)
     try {
-      const res = await axios.post('http://localhost:8000/aigov/api/v1/admin/scan-updates', {
+      const res = await axios.post('/aigov/api/v1/admin/scan-updates', {
         master_api_url: parentApiUrl
       })
       await fetchData()
@@ -74,7 +74,7 @@ export default function AdminPanel() {
 
   const handleApprove = async (id: string) => {
     try {
-      await axios.post(`http://localhost:8000/aigov/api/v1/admin/drafts/${id}/approve`)
+      await axios.post(`/aigov/api/v1/admin/drafts/${id}/approve`)
       await fetchData()
       alert('Update approved and knowledge base updated!')
     } catch (err) {
@@ -84,7 +84,7 @@ export default function AdminPanel() {
 
   const handleReject = async (id: string) => {
     try {
-      await axios.post(`http://localhost:8000/aigov/api/v1/admin/drafts/${id}/reject`)
+      await axios.post(`/aigov/api/v1/admin/drafts/${id}/reject`)
       setDrafts(prev => prev.filter(d => d.id !== id))
     } catch (err) {
       console.error(err)
