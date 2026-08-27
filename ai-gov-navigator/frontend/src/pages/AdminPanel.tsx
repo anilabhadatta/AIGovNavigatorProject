@@ -124,6 +124,12 @@ export default function AdminPanel() {
         <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-300"><Database size={24} /></div>
         <h2 className="mb-2 text-center text-2xl font-bold text-white">Navigator Admin</h2>
         <p className="mb-6 text-center text-sm text-slate-400">Secure knowledge-base operations</p>
+
+        <div className="mb-5 rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-3 py-2 text-xs text-cyan-100">
+          <div className="flex items-center justify-between gap-3"><span>Username</span><span className="font-semibold text-cyan-200">admin</span></div>
+          <div className="mt-1 flex items-center justify-between gap-3"><span>Password</span><span className="font-semibold text-cyan-200">admin</span></div>
+        </div>
+
         <form onSubmit={handleLogin} className="space-y-4">
           <input type="text" value={username} onChange={event => setUsername(event.target.value)} placeholder="Username" className="w-full rounded-xl border border-slate-700 bg-slate-900 p-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
           <input type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Password" className="w-full rounded-xl border border-slate-700 bg-slate-900 p-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
