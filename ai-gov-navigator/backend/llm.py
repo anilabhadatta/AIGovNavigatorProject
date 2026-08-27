@@ -1,6 +1,5 @@
 import os
 import json
-from langdetect import detect
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
@@ -14,24 +13,30 @@ api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
 
 def detect_language(query: str) -> str:
+    if not client:
+        return 'English'
+        
+    prompt = f"""
+    Identify the language of the following text. 
+    Return ONLY the English name of the language (e.g., 'Hindi', 'English', 'Tamil', 'Bengali'). 
+    Do not return any other text, punctuation, or explanation.
+    
+    Text: "{query}"
+    """
+    
     try:
-        lang = detect(query)
-        # Maps langdetect output to full names for the prompt
-        lang_map = {
-            'hi': 'Hindi',
-            'bn': 'Bengali',
-            'ta': 'Tamil',
-            'te': 'Telugu',
-            'mr': 'Marathi',
-            'gu': 'Gujarati',
-            'kn': 'Kannada',
-            'ml': 'Malayalam',
-            'pa': 'Punjabi',
-            'or': 'Odia',
-            'en': 'English'
-        }
-        return lang_map.get(lang, 'English')
-    except:
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.0
+            )
+        )
+        lang = response.text.strip()
+        if len(lang) > 20 or not lang:
+            return 'English'
+        return lang
+    except Exception:
         return 'English'
 
 class IntentExtraction(BaseModel):
