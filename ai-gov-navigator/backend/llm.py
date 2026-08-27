@@ -6,7 +6,7 @@ from google.genai import types
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Initialize Gemini Client
 # It will automatically pick up GEMINI_API_KEY from environment variables

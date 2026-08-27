@@ -23,7 +23,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       # Note: Make sure to place a .env file in ai-gov-navigator/backend
-      - GEMINI_API_KEY=${GEMINI_API_KEY} 
+    env_file:
+      - ./ai-gov-navigator/backend/.env
 
   ai-gov-frontend:
     build:
