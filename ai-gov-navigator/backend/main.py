@@ -158,6 +158,10 @@ def scan_updates(req: ConnectApiRequest):
     
     url = req.master_api_url.strip() if req.master_api_url else "http://dummy-gov-webapp:8001/dummygov/api/master"
     
+    # Auto-fix for relative paths passed from frontend
+    if url.startswith("/"):
+        url = f"http://dummy-gov-webapp:8001{url}"
+        
     # Auto-fix for docker networking
     if "localhost:" in url or "127.0.0.1:" in url or "0.0.0.0:" in url:
         url = url.replace("localhost:", "dummy-gov-webapp:")
