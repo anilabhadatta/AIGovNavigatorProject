@@ -1,0 +1,20 @@
+# Node
+node_modules/
+dist/
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
+
+# Databases
+*.sqlite3
+*.db
+chroma_data/
+
+# OS Files
+.DS_Store
+Thumbs.db

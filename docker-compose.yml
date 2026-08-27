@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  dummy-gov-webapp:
+    build: 
+      context: ./dummy-gov-webapp
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./dummy-gov-webapp:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  ai-gov-backend:
+    build:
+      context: ./ai-gov-navigator/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-gov-navigator/backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Note: Make sure to place a .env file in ai-gov-navigator/backend
+      - GEMINI_API_KEY=${GEMINI_API_KEY} 
+
+  ai-gov-frontend:
+    build:
+      context: ./ai-gov-navigator/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./ai-gov-navigator/frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - ai-gov-backend
+      - dummy-gov-webapp

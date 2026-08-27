@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+chromadb
+sentence-transformers
+langdetect
+google-genai
+python-dotenv
