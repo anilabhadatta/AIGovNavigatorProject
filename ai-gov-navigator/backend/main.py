@@ -62,6 +62,7 @@ class ChatSource(BaseModel):
     link: str
     lastVerified: str
     ref: str
+    serviceId: Optional[str] = None
 
 class ChatResponse(BaseModel):
     answer: str
@@ -150,7 +151,8 @@ def chat(request: ChatRequest):
             sources=[ChatSource(
                 link=service_data.get("official_link", ""),
                 lastVerified=service_data.get("last_verified_date", ""),
-                ref=service_data.get("source_ref", "")
+                ref=service_data.get("source_ref", ""),
+                serviceId=service_data.get("service_id", target_service_id)
             )]
         )
         
