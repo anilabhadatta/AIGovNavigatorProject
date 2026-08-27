@@ -39,16 +39,16 @@ The easiest way to run the entire federated system is using Docker Compose.
    ```bash
    echo "GEMINI_API_KEY=your_google_api_key_here" > ai-gov-navigator/backend/.env
    ```
-2. Start the cluster:
+3. Start the cluster:
    ```bash
    docker compose up --build
    ```
-3. Access the interfaces:
-   - **Citizen Chat:** `http://localhost:5173/`
-   - **Admin Panel:** `http://localhost:5173/admin`
-   - **Dummy Gov Editor:** `http://localhost:8001/`
+4. Access the interfaces:
+   - **Citizen Chat:** `http://localhost:5173/navigator/`
+   - **Admin Panel:** `http://localhost:5173/navigator/admin`
+   - **Dummy Gov Editor:** `http://localhost:8001/dummygov/`
 
-*Note: If running in Docker, inside the Admin Panel, change the Gov Parent API URL to `http://dummy-gov-webapp:8001/api/master` so the internal Docker DNS resolves correctly.*
+*Note: If running in Docker, inside the Admin Panel, change the Gov Parent API URL to `http://dummy-gov-webapp:8001/dummygov/api/master` so the internal Docker DNS resolves correctly.*
 
 ## Quick Start (Local PowerShell / Windows)
 If you prefer running natively without Docker:

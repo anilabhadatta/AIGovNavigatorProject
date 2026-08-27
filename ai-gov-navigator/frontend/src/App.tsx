@@ -5,7 +5,7 @@ import { LayoutDashboard, MessageCircle } from 'lucide-react'
 
 function App() {
   return (
-    <Router>
+    <Router basename="/navigator">
       <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
         <nav className="glass sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-3">

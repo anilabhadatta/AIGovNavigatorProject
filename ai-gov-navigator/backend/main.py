@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -22,6 +22,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+router = APIRouter(prefix="/aigov")
 
 class SearchRequest(BaseModel):
     query: str
@@ -52,11 +54,11 @@ async def startup_event():
     print("Initializing Database...")
     init_db()
 
-@app.get("/")
+@router.get("/")
 def read_root():
     return {"message": "Welcome to AI Government Service Navigator API"}
 
-@app.post("/api/v1/search", response_model=List[SearchResponse])
+@router.post("/api/v1/search", response_model=List[SearchResponse])
 def search(request: SearchRequest):
     results = search_services(request.query, request.top_k)
     response = []
@@ -71,14 +73,14 @@ def search(request: SearchRequest):
         ))
     return response
 
-@app.get("/api/v1/service/{service_id}")
+@router.get("/api/v1/service/{service_id}")
 def get_service(service_id: str):
     service = get_service_by_id(service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
     return service
 
-@app.post("/api/v1/chat", response_model=ChatResponse)
+@router.post("/api/v1/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     # 1. Detect Language
     language = llm.detect_language(request.query)
@@ -139,22 +141,22 @@ def chat(request: ChatRequest):
 
 # --- Phase 3 & 4: Admin endpoints ---
 
-@app.get("/api/v1/admin/drafts", response_model=List[DraftUpdate])
+@router.get("/api/v1/admin/drafts", response_model=List[DraftUpdate])
 def get_drafts():
     return get_all_drafts()
 
-@app.get("/api/v1/admin/services")
+@router.get("/api/v1/admin/services")
 def get_services():
     return get_all_services()
 
 class ConnectApiRequest(BaseModel):
     master_api_url: str
 
-@app.post("/api/v1/admin/scan-updates")
+@router.post("/api/v1/admin/scan-updates")
 def scan_updates(req: ConnectApiRequest):
     """Crawler: Fetches KB from the dummy Gov Portal API, compares version, and auto-drafts updates."""
     
-    url = req.master_api_url.strip() if req.master_api_url else "http://dummy-gov-webapp:8001/api/master"
+    url = req.master_api_url.strip() if req.master_api_url else "http://dummy-gov-webapp:8001/dummygov/api/master"
     
     # Auto-fix for docker networking
     if "localhost:" in url or "127.0.0.1:" in url or "0.0.0.0:" in url:
@@ -238,7 +240,7 @@ def scan_updates(req: ConnectApiRequest):
     
     return {"message": f"Scan complete. Found {new_drafts_generated} updates.", "count": new_drafts_generated}
 
-@app.post("/api/v1/admin/drafts/{draft_id}/approve")
+@router.post("/api/v1/admin/drafts/{draft_id}/approve")
 def approve_draft(draft_id: str):
     draft = get_draft(draft_id)
     if not draft:
@@ -260,7 +262,7 @@ def approve_draft(draft_id: str):
     
     return {"message": "Draft approved and knowledge base updated."}
 
-@app.post("/api/v1/admin/drafts/{draft_id}/reject")
+@router.post("/api/v1/admin/drafts/{draft_id}/reject")
 def reject_draft(draft_id: str):
     draft = get_draft(draft_id)
     if not draft:
@@ -268,6 +270,8 @@ def reject_draft(draft_id: str):
         
     delete_draft(draft_id)
     return {"message": "Draft rejected."}
+
+app.include_router(router)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

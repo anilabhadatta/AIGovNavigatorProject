@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, APIRouter
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,6 +17,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+router = APIRouter(prefix="/dummygov")
 
 DB_PATH = "dummy_gov.db"
 
@@ -91,18 +93,18 @@ def init_db():
 def startup():
     init_db()
 
-@app.get("/api/master")
+@router.get("/api/master")
 def get_master_api_list(request: Request):
     """Returns the list of apps and their specific KB API endpoints."""
     base_url = str(request.base_url).rstrip("/")
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT app_id, app_name FROM apps")
-    apps = [{"app_id": row[0], "app_name": row[1], "kb_api_url": f"{base_url}/api/app/{row[0]}/kb"} for row in c.fetchall()]
+    apps = [{"app_id": row[0], "app_name": row[1], "kb_api_url": f"{base_url}/dummygov/api/app/{row[0]}/kb"} for row in c.fetchall()]
     conn.close()
     return {"apps": apps}
 
-@app.get("/api/app/{app_id}/kb")
+@router.get("/api/app/{app_id}/kb")
 def get_app_kb(app_id: str):
     """Returns the knowledgebase for a specific application context."""
     conn = sqlite3.connect(DB_PATH)
@@ -130,7 +132,7 @@ class UpdateKBRequest(BaseModel):
     service_name: str
     content: dict
 
-@app.post("/api/admin/app/{app_id}/kb")
+@router.post("/api/admin/app/{app_id}/kb")
 def admin_update_kb(app_id: str, req: UpdateKBRequest):
     """Admin endpoint for the dummy portal to modify their own KB (Simulates real gov updates)."""
     conn = sqlite3.connect(DB_PATH)
@@ -154,7 +156,7 @@ def admin_update_kb(app_id: str, req: UpdateKBRequest):
     conn.close()
     return {"message": "Knowledgebase updated successfully.", "version": new_ver if row else 1}
 
-@app.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
 def get_admin_ui():
     html_content = """
     <!DOCTYPE html>
@@ -177,7 +179,7 @@ def get_admin_ui():
                     <p class="text-gray-600 mt-1">Manage Source-of-Truth Knowledge Base for all Portals</p>
                 </div>
                 <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-semibold border border-green-200">
-                    Master API: <span class="font-mono font-normal">/api/master</span>
+                    Master API: <span class="font-mono font-normal">/dummygov/api/master</span>
                 </div>
             </header>
 
@@ -186,7 +188,7 @@ def get_admin_ui():
 
         <script>
             async function fetchApps() {
-                const res = await fetch('/api/master');
+                const res = await fetch('/dummygov/api/master');
                 const data = await res.json();
                 
                 for (const app of data.apps) {
@@ -233,7 +235,7 @@ def get_admin_ui():
                 const contentStr = document.getElementById(`json-${serviceId}`).value;
                 try {
                     const contentJson = JSON.parse(contentStr);
-                    const res = await fetch(`/api/admin/app/${appId}/kb`, {
+                    const res = await fetch(`/dummygov/api/admin/app/${appId}/kb`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -256,6 +258,8 @@ def get_admin_ui():
     </html>
     """
     return HTMLResponse(content=html_content)
+
+app.include_router(router)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

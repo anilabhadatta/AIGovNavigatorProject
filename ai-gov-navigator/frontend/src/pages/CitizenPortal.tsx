@@ -47,7 +47,7 @@ export default function CitizenPortal() {
 
     try {
       // Phase 2: AI chat pipeline
-      const res = await axios.post('http://localhost:8000/api/v1/chat', {
+      const res = await axios.post('http://localhost:8000/aigov/api/v1/chat', {
         query: input
       })
 
