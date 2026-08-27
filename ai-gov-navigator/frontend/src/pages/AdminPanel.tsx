@@ -140,6 +140,7 @@ export default function AdminPanel() {
     { icon: UserRoundCheck, title: 'Human approves', text: 'An admin is the publication gate for every update.' },
     { icon: ShieldCheck, title: 'Citizen guidance', text: 'Approved facts power sourced, grounded answers.' },
   ]
+
   const metrics: [string, string | number, string][] = [
     ['Connected portals', connectedPortals, 'Registered sources in the verified catalog'],
     ['Verified services', services.length, 'Approved records available to the citizen assistant'],
@@ -148,47 +149,158 @@ export default function AdminPanel() {
   ]
 
   return (
-    <div className="h-full min-h-0 w-full overflow-y-auto px-5 py-6 sm:px-8">
-      <header className="mb-6 rounded-3xl bg-slate-950 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="max-w-2xl">
-            <div className="mb-3 flex items-center gap-3"><div className="rounded-xl bg-indigo-500/20 p-2.5 text-indigo-300"><Database size={24} /></div><p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Live governance console</p></div>
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">From official portal changes to trustworthy citizen guidance.</h2>
-            <p className="mt-3 text-slate-400">This demo tracks public service-flow information—steps, documents, fees, and portal UI changes. It never ingests citizen records or personal data.</p>
+    <div className="h-full min-h-0 w-full overflow-y-auto px-4 py-5 sm:px-6">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header className="rounded-[1.75rem] border border-white/10 bg-slate-950/70 p-5 shadow-[0_0_45px_rgba(15,23,42,0.38)] backdrop-blur-xl md:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-2.5 text-cyan-200"><Database size={22} /></div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-cyan-200/80">Live governance console</p>
+              </div>
+              <h2 className="text-2xl font-semibold tracking-tight text-white md:text-4xl">From official portal changes to trustworthy citizen guidance.</h2>
+              <p className="mt-3 max-w-xl text-sm text-slate-300">This demo tracks public service-flow information—steps, documents, fees, and portal UI changes without ingesting sensitive citizen data.</p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input value={parentApiUrl} onChange={event => setParentApiUrl(event.target.value)} aria-label="Government parent API URL" className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 sm:w-64" placeholder="Gov Parent API URL" />
+              <button onClick={handleScan} disabled={isScanning} className="flex items-center justify-center gap-2 rounded-full bg-cyan-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-60">{isScanning ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}{isScanning ? 'Scanning...' : 'Scan updates'}</button>
+              <button onClick={handleLogout} className="text-sm text-slate-300 transition hover:text-white">Logout</button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <input value={parentApiUrl} onChange={event => setParentApiUrl(event.target.value)} aria-label="Government parent API URL" className="w-64 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Gov Parent API URL" />
-            <button onClick={handleScan} disabled={isScanning} className="flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-white transition hover:bg-indigo-400 disabled:opacity-50">{isScanning ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}{isScanning ? 'Scanning...' : 'Scan Official Portal Updates'}</button>
-            <button onClick={handleLogout} className="text-sm text-slate-400 underline transition hover:text-white">Logout</button>
+        </header>
+
+        <section aria-label="Knowledge update pipeline" className="rounded-[1.5rem] border border-white/10 bg-white/4 p-4 shadow-[0_0_30px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-cyan-100">
+            <ShieldCheck size={18} className="text-cyan-300" />
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-100/90">Governed update pipeline</h3>
+            <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-100/80">Human review required</span>
           </div>
+
+          <div className="grid gap-3 lg:grid-cols-5">
+            {pipeline.map((stage, index) => {
+              const Icon = stage.icon
+              return (
+                <div key={stage.title} className="flex items-start gap-3 rounded-2xl border border-white/6 bg-slate-900/50 p-3 text-left ring-1 ring-white/[0.03]">
+                  <div className="flex shrink-0 items-center gap-2">
+                    <div className="rounded-xl border border-cyan-400/25 bg-cyan-400/10 p-2 text-cyan-200"><Icon size={15} /></div>
+                    {index < pipeline.length - 1 && <ArrowRight size={15} className="hidden text-slate-500 lg:block" />}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">{index + 1}. {stage.title}</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-300">{stage.text}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section aria-label="Live demo summary" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map(([label, value, description]) => (
+            <div key={label} className="rounded-[1.4rem] border border-white/10 bg-slate-900/55 p-4 shadow-[0_0_25px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">{label}</p>
+              <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">{description}</p>
+            </div>
+          ))}
+        </section>
+
+        <div role="tablist" aria-label="Knowledge governance records" className="flex gap-2 border-b border-white/10 pb-2">
+          <button role="tab" aria-selected={activeTab === 'active'} onClick={() => setActiveTab('active')} className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${activeTab === 'active' ? 'bg-cyan-400/12 text-cyan-100 ring-1 ring-cyan-400/20' : 'text-slate-400 hover:text-white'}`}><Database size={16} />Verified Knowledge Base</button>
+          <button role="tab" aria-selected={activeTab === 'pending'} onClick={() => setActiveTab('pending')} className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${activeTab === 'pending' ? 'bg-cyan-400/12 text-cyan-100 ring-1 ring-cyan-400/20' : 'text-slate-400 hover:text-white'}`}><GitPullRequest size={16} />Review Queue {drafts.length > 0 && <span className="rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] text-rose-200">{drafts.length}</span>}</button>
         </div>
-      </header>
 
-      <section aria-label="Knowledge update pipeline" className="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5">
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-indigo-950"><ShieldCheck size={18} className="text-indigo-600" /><h3 className="font-bold">Governed update pipeline</h3><span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">Human review required</span></div>
-        <div className="grid gap-3 lg:grid-cols-5">{pipeline.map((stage, index) => {
-          const Icon = stage.icon
-          return <div key={stage.title} className="flex items-start gap-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-indigo-100 lg:block"><div className="mb-0 flex shrink-0 items-center gap-2 lg:mb-3"><div className="rounded-lg bg-slate-950 p-2 text-indigo-300"><Icon size={16} /></div>{index < pipeline.length - 1 && <ArrowRight size={15} className="hidden text-indigo-300 lg:block" />}</div><div><h4 className="text-sm font-bold text-slate-900">{index + 1}. {stage.title}</h4><p className="mt-1 text-xs leading-relaxed text-slate-600">{stage.text}</p></div></div>
-        })}</div>
-      </section>
+        <AnimatePresence mode="wait">
+          {activeTab === 'pending' ? (
+            <motion.section key="pending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+              <div className="rounded-[1.4rem] border border-cyan-400/20 bg-cyan-400/8 p-4 text-sm text-cyan-50">
+                <strong>Review gate:</strong> these proposed differences were detected from registered portal sources and structured by AI. They do not reach the citizen assistant until an administrator approves them.
+              </div>
 
-      <section aria-label="Live demo summary" className="mb-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(([label, value, description]) => <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p><p className="mt-2 text-xl font-bold text-slate-900">{value}</p><p className="mt-1 text-xs leading-relaxed text-slate-500">{description}</p></div>)}</section>
+              {drafts.length === 0 ? (
+                <div className="rounded-[1.6rem] border border-white/10 bg-slate-900/55 p-12 text-center shadow-[0_0_28px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+                  <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/10 text-cyan-200"><Check size={28} /></div>
+                  <h3 className="text-xl font-semibold text-white">All caught up</h3>
+                  <p className="mt-2 text-slate-300">No source changes are waiting for review. Scan the registered portals to check for updates.</p>
+                </div>
+              ) : (
+                drafts.map(draft => (
+                  <article key={draft.id} className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-900/55 shadow-[0_0_28px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+                    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 bg-white/[0.02] p-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-100">AI draft</span>
+                          <h3 className="text-lg font-semibold text-white">{draft.service_name}</h3>
+                        </div>
+                        <p className="mt-2 text-xs text-slate-400">Source: {draft.portal} · {draft.source_snapshot}</p>
+                      </div>
+                      <p className="text-xs text-slate-400">Detected {formatDate(draft.timestamp)}</p>
+                    </div>
 
-      <div role="tablist" aria-label="Knowledge governance records" className="mb-5 flex gap-2 border-b border-slate-200">
-        <button role="tab" aria-selected={activeTab === 'active'} onClick={() => setActiveTab('active')} className={`flex items-center gap-2 px-4 pb-3 font-medium transition ${activeTab === 'active' ? 'border-b-2 border-indigo-600 text-indigo-700' : 'text-slate-500 hover:text-slate-800'}`}><Database size={18} />Verified Knowledge Base</button>
-        <button role="tab" aria-selected={activeTab === 'pending'} onClick={() => setActiveTab('pending')} className={`flex items-center gap-2 px-4 pb-3 font-medium transition ${activeTab === 'pending' ? 'border-b-2 border-indigo-600 text-indigo-700' : 'text-slate-500 hover:text-slate-800'}`}><GitPullRequest size={18} />Review Queue {drafts.length > 0 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">{drafts.length}</span>}</button>
+                    <div className="p-5">
+                      <h4 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">Proposed source changes</h4>
+                      <div className="space-y-3">
+                        {draft.changes.map((change, index) => (
+                          <div key={index} className="grid gap-3 rounded-2xl border border-white/8 bg-slate-950/60 p-3 md:grid-cols-[minmax(8rem,1fr)_minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+                            <div className="flex items-center gap-2 text-sm font-medium text-slate-200">{change.field}{change.needs_review && <AlertCircle size={15} className="text-amber-300" aria-label="Needs additional review" />}</div>
+                            <div className="max-h-28 overflow-auto rounded-xl bg-rose-500/10 p-2 text-sm text-rose-200 line-through">{change.old_value}</div>
+                            <ArrowRight size={16} className="hidden text-slate-500 md:block" />
+                            <div className="max-h-28 overflow-auto rounded-xl bg-cyan-400/10 p-2 text-sm text-cyan-100">{change.new_value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-white/10 px-5 py-4">
+                      <button onClick={() => handleReject(draft.id)} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10"><X size={14} /> Reject</button>
+                      <button onClick={() => handleApprove(draft.id)} className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-3 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-300"><Check size={14} /> Approve update</button>
+                    </div>
+                  </article>
+                ))
+              )}
+            </motion.section>
+          ) : (
+            <motion.section key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+              <div className="rounded-[1.4rem] border border-emerald-400/20 bg-emerald-400/8 p-4 text-sm text-emerald-50">
+                <strong>Verified source of truth:</strong> each approved record is synchronized to semantic retrieval, so the citizen assistant can answer from reviewed service-flow facts and show the official source.
+              </div>
+
+              {services.map(service => (
+                <article key={service.service_id} className="rounded-[1.5rem] border border-white/10 bg-slate-900/55 p-5 shadow-[0_0_28px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-100">Approved</span>
+                        <span className="rounded-full border border-violet-400/25 bg-violet-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-violet-100">v{service.version}</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white">{service.service_name}</h3>
+                      <p className="mt-1 text-sm text-slate-400">Agency: {service.portal} · Service ID: {service.service_id}</p>
+                    </div>
+                    <div className="text-right text-xs text-slate-400">
+                      <div className="flex items-center justify-end gap-1"><Clock3 size={13} /> Last verified</div>
+                      <p className="mt-1 font-medium text-slate-200">{formatDate(service.updated_at)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400"><FileText size={15} />Service-flow data</div>
+                    {service.content.official_link && (
+                      <a href={service.content.official_link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm font-medium text-cyan-200 transition hover:text-cyan-100">Official source <ExternalLink size={14} /></a>
+                    )}
+                  </div>
+
+                  <pre className="mt-3 max-h-52 overflow-auto rounded-2xl border border-white/10 bg-slate-950/80 p-3 text-xs text-slate-200">{JSON.stringify(service.content, null, 2)}</pre>
+                </article>
+              ))}
+
+              {services.length === 0 && (
+                <div className="rounded-[1.6rem] border border-white/10 bg-slate-900/55 p-8 text-center text-slate-300 backdrop-blur-xl">No verified service records are available yet.</div>
+              )}
+            </motion.section>
+          )}
+        </AnimatePresence>
       </div>
-
-      <AnimatePresence mode="wait">
-        {activeTab === 'pending' ? <motion.section key="pending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
-          <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4 text-sm text-violet-950"><strong>Review gate:</strong> these proposed differences were detected from registered portal sources and structured by AI. They do not reach the citizen assistant until an administrator approves them.</div>
-          {drafts.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm"><div className="mb-4 inline-block rounded-full bg-indigo-50 p-4 text-indigo-600"><Check size={32} /></div><h3 className="text-xl font-semibold text-slate-800">All caught up</h3><p className="mt-2 text-slate-500">No source changes are waiting for review. Scan the registered portals to check for updates.</p></div> : drafts.map(draft => <article key={draft.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md"><div className="flex flex-wrap items-start justify-between gap-3 border-b border-indigo-100 bg-indigo-50/70 p-4"><div><div className="flex items-center gap-2"><span className="rounded bg-indigo-100 px-2 py-1 text-xs font-bold text-indigo-700">AI DRAFT</span><h3 className="text-lg font-bold text-slate-900">{draft.service_name}</h3></div><p className="mt-1 text-xs text-slate-600">Source: {draft.portal} · {draft.source_snapshot}</p></div><p className="text-xs text-slate-500">Detected {formatDate(draft.timestamp)}</p></div><div className="p-5"><h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-700">Proposed source changes</h4><div className="space-y-3">{draft.changes.map((change, index) => <div key={index} className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 md:grid-cols-[minmax(8rem,1fr)_minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center"><div className="flex items-center gap-2 text-sm font-medium text-slate-700">{change.field}{change.needs_review && <AlertCircle size={15} className="text-amber-500" aria-label="Needs additional review" />}</div><div className="max-h-28 overflow-auto rounded bg-red-50 p-2 text-sm text-red-700 line-through">{change.old_value}</div><ArrowRight size={16} className="hidden text-slate-400 md:block" /><div className="max-h-28 overflow-auto rounded bg-violet-50 p-2 text-sm text-violet-700">{change.new_value}</div></div>)}</div></div><div className="flex flex-wrap justify-end gap-3 border-t bg-slate-50 p-4"><button onClick={() => handleReject(draft.id)} className="flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"><X size={16} />Reject</button><button onClick={() => handleApprove(draft.id)} className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"><Check size={16} />Approve & sync to citizen guidance</button></div></article>)}
-        </motion.section> : <motion.section key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-950"><strong>Verified source of truth:</strong> each approved record is synchronized to semantic retrieval, so the citizen assistant can answer from reviewed service-flow facts and show the official source.</div>
-          {services.map(service => <article key={service.service_id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-200"><div className="flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 flex flex-wrap items-center gap-2"><span className="rounded bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-800">APPROVED · CITIZEN-ANSWER READY</span><span className="rounded bg-violet-100 px-2 py-1 text-xs font-bold text-violet-800">v{service.version}</span></div><h3 className="text-lg font-bold text-slate-900">{service.service_name}</h3><p className="mt-1 text-sm text-slate-500">Agency: {service.portal} · Service ID: {service.service_id}</p></div><div className="text-right text-xs text-slate-500"><div className="flex items-center justify-end gap-1"><Clock3 size={13} />Last verified</div><p className="mt-1 font-medium text-slate-700">{formatDate(service.updated_at)}</p></div></div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500"><FileText size={15} />Service-flow data</div>{service.content.official_link && <a href={service.content.official_link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm font-medium text-indigo-700 hover:underline">Official source <ExternalLink size={14} /></a>}</div><pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200">{JSON.stringify(service.content, null, 2)}</pre></article>)}
-          {services.length === 0 && <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">No verified service records are available yet.</div>}
-        </motion.section>}
-      </AnimatePresence>
     </div>
   )
 }
