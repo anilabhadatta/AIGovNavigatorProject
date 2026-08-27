@@ -11,9 +11,25 @@ import os
 import uuid
 import datetime
 import requests
+import logging
+
+# Configure central logging to project root
+log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "app.log"))
+logging.basicConfig(
+    filename=log_file_path,
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("backend")
+
 from models import DraftUpdate, DraftChange
 from db import init_db, search_services, get_service_by_id, upsert_service, get_service_version, get_all_services, save_draft, get_all_drafts, get_draft, delete_draft
 app = FastAPI(title="AI Government Service Navigator")
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Initializing Backend Database...")
+    init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -136,7 +152,7 @@ def chat(request: ChatRequest):
         )
         
     except Exception as e:
-        print(f"Error in LLM pipeline: {e}")
+        logger.error(f"Error in LLM pipeline: {e}")
         raise HTTPException(status_code=500, detail="Error generating response. Please make sure GEMINI_API_KEY is set in .env")
 
 # --- Phase 3 & 4: Admin endpoints ---
@@ -182,10 +198,16 @@ def scan_updates(req: ConnectApiRequest):
         app_name = app_info.get("app_name")
         app_id = app_info.get("app_id")
         
+        # Ensure kb_url uses internal Docker DNS instead of the external custom domain
+        if kb_url and "dummygov/" in kb_url:
+            path_suffix = kb_url.split("dummygov/")[1]
+            kb_url = f"http://dummy-gov-webapp:8001/dummygov/{path_suffix}"
+            
         try:
             kb_res = requests.get(kb_url)
             kb_data = kb_res.json()
-        except:
+        except Exception as e:
+            logger.error(f"Failed to fetch KB from {kb_url}: {e}")
             continue
             
         kb_entries = kb_data.get("knowledgebase", [])

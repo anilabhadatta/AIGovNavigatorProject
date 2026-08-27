@@ -7,6 +7,16 @@ export default defineConfig({
   base: '/navigator/',
   server: {
     allowedHosts: ["ai-nav.redirectme.net", "ai-gov-navigator.mycourses.workers.dev", "localhost"],
+    proxy: {
+      '/aigov': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true
+      },
+      '/dummygov': {
+        target: 'http://127.0.0.1:8001',
+        changeOrigin: true
+      }
+    }
   },
   plugins: [react(), tailwindcss()],
 })

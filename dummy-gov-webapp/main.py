@@ -7,6 +7,16 @@ import uvicorn
 import sqlite3
 import json
 import os
+import logging
+
+# Configure central logging to project root
+log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app.log"))
+logging.basicConfig(
+    filename=log_file_path,
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("dummygov")
 
 app = FastAPI(title="Dummy Government Portal API", version="1.0")
 

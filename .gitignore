@@ -18,3 +18,7 @@ chroma_data/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+app.log
