@@ -1,7 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Info, ExternalLink, CarFront, MapPinHouse, FileText, IdCard, Sparkles, ArrowUpRight, Search } from 'lucide-react'
+import { Send, Loader2, Info, ExternalLink, CarFront, MapPinHouse, FileText, IdCard, Sparkles, ArrowUpRight, Search, Mic, MicOff, Volume2, VolumeX } from 'lucide-react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
+
+interface SpeechRecognitionLike {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start: () => void
+  stop: () => void
+  onresult: ((event: any) => void) | null
+  onerror: ((event: any) => void) | null
+  onend: (() => void) | null
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionLike
+}
+
+interface WindowWithSpeech {
+  SpeechRecognition?: SpeechRecognitionConstructor
+  webkitSpeechRecognition?: SpeechRecognitionConstructor
+  speechSynthesis?: SpeechSynthesis
+}
 
 interface ChatSource {
   link: string
@@ -94,6 +115,10 @@ export default function CitizenPortal() {
   const [connectorVisible, setConnectorVisible] = useState(false)
   const [connectorDrawn, setConnectorDrawn] = useState(false)
   const [connectorLength, setConnectorLength] = useState(0)
+  const [isListening, setIsListening] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [voiceSupported, setVoiceSupported] = useState(true)
+  const [voiceStatus, setVoiceStatus] = useState('Voice input ready')
 
   const searchBarRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -101,6 +126,7 @@ export default function CitizenPortal() {
   const connectorPathRef = useRef<SVGPathElement | null>(null)
   const loadingIntervalRef = useRef<number | null>(null)
   const finalizeTimerRef = useRef<number | null>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
 
   const assistantResponses = messages.slice(1).filter(message => message.role === 'assistant' && !message.isTyping)
   const latestAssistantMessage = assistantResponses[assistantResponses.length - 1] ?? null
@@ -146,7 +172,49 @@ export default function CitizenPortal() {
   }, [connectorPath, connectorVisible])
 
   useEffect(() => {
+    const SpeechRecognitionApi = (window as Window & WindowWithSpeech).SpeechRecognition || (window as Window & WindowWithSpeech).webkitSpeechRecognition
+
+    if (!SpeechRecognitionApi) {
+      setVoiceSupported(false)
+      setVoiceStatus('Voice input is not supported in this browser')
+      return
+    }
+
+    const recognition = new SpeechRecognitionApi()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = 'en-IN'
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0]?.transcript ?? '')
+        .join(' ')
+        .trim()
+
+      if (transcript) {
+        setInput(transcript)
+        setVoiceStatus('Voice captured. Review and send when ready.')
+      }
+    }
+
+    recognition.onerror = (event: any) => {
+      const errorMessage = event?.error || 'Voice capture failed'
+      setVoiceStatus(errorMessage === 'not-allowed' ? 'Microphone permission was denied.' : `Voice capture failed: ${errorMessage}`)
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognitionRef.current = recognition
+
     return () => {
+      recognition.stop()
+      recognitionRef.current = null
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+      }
       if (loadingIntervalRef.current) {
         window.clearInterval(loadingIntervalRef.current)
       }
@@ -155,6 +223,57 @@ export default function CitizenPortal() {
       }
     }
   }, [])
+
+  const toggleVoiceInput = () => {
+    if (!voiceSupported || !recognitionRef.current) {
+      setVoiceStatus('Voice input is not supported in this browser')
+      return
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+      setVoiceStatus('Listening stopped')
+      return
+    }
+
+    try {
+      recognitionRef.current.start()
+      setIsListening(true)
+      setVoiceStatus('Listening... speak your query now')
+    } catch (error) {
+      setVoiceStatus('Microphone is already active. Please try again.')
+      setIsListening(false)
+    }
+  }
+
+  const speakLatestAnswer = () => {
+    if (!latestAssistantMessage?.content) return
+
+    if (!('speechSynthesis' in window)) {
+      setVoiceStatus('Text-to-speech is not supported in this browser')
+      return
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      setVoiceStatus('Audio playback stopped')
+      return
+    }
+
+    const utterance = new SpeechSynthesisUtterance(latestAssistantMessage.content)
+    utterance.lang = 'en-IN'
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+    setVoiceStatus('Speaking the latest answer')
+  }
 
   // CodeX: keep the verified source path visible until the next user query triggers a fresh connection.
   const buildConnectorPath = (sourceId: string) => {
@@ -415,6 +534,16 @@ export default function CitizenPortal() {
 
               <form onSubmit={handleSend} className="mt-7 w-full">
                 <div ref={searchBarRef} className="flex w-full items-center gap-2 rounded-full bg-white/8 px-3 py-2.5 backdrop-blur-2xl shadow-[0_0_45px_rgba(15,23,42,0.45)] ring-1 ring-white/10">
+                  <button
+                    type="button"
+                    aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+                    onClick={toggleVoiceInput}
+                    disabled={!voiceSupported || isLoading}
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-all ${isListening ? 'bg-rose-400 text-slate-950 shadow-[0_0_18px_rgba(251,113,133,0.6)]' : 'bg-white/10 text-white/80 hover:bg-white/14'} disabled:cursor-not-allowed disabled:opacity-50`}
+                  >
+                    {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                  </button>
+
                   <input
                     type="text"
                     value={input}
@@ -431,6 +560,10 @@ export default function CitizenPortal() {
                   </button>
                 </div>
               </form>
+
+              <div className="mt-3 text-center text-[10px] uppercase tracking-[0.2em] text-white/50">
+                {voiceStatus}
+              </div>
 
               <AnimatePresence>
                 {isLoading && (
@@ -471,8 +604,21 @@ export default function CitizenPortal() {
                 exit={{ opacity: 0, y: 10 }}
                 className="rounded-[1.5rem] bg-white/6 px-5 py-4 backdrop-blur-2xl shadow-[0_0_40px_rgba(15,23,42,0.28)]"
               >
-                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/45">
-                  <ArrowUpRight size={12} /> Live result
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/45">
+                    <ArrowUpRight size={12} /> Live result
+                  </div>
+
+                  {latestAssistantMessage.content && (
+                    <button
+                      type="button"
+                      onClick={speakLatestAnswer}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white/70 transition hover:bg-white/12"
+                    >
+                      {isSpeaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                      {isSpeaking ? 'Stop' : 'Listen'}
+                    </button>
+                  )}
                 </div>
                 <div className="whitespace-pre-wrap text-sm leading-relaxed text-white/88">
                   {latestAssistantMessage.content}
