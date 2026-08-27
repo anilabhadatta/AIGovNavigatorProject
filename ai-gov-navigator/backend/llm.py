@@ -60,7 +60,7 @@ def extract_intent(query: str, available_services: list[dict]) -> IntentExtracti
     """
     
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-3.1-flash-lite',
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -103,7 +103,7 @@ def extract_draft_update(diff_text: str, service_data: dict) -> list[dict]:
     """
     
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-3.1-flash-lite',
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -138,7 +138,7 @@ def generate_grounded_answer(query: str, service_data: dict, language: str) -> s
     """
     
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-3.1-flash-lite',
         contents=prompt,
         config=types.GenerateContentConfig(
             temperature=0.1
