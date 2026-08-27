@@ -12,6 +12,9 @@ import uuid
 import datetime
 import requests
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configure central logging to project root
 log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "app.log"))
@@ -23,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger("backend")
 
 from models import DraftUpdate, DraftChange
-from db import init_db, search_services, get_service_by_id, upsert_service, get_service_version, get_all_services, save_draft, get_all_drafts, get_draft, delete_draft
+from db import init_db, search_services, get_service_by_id, upsert_service, get_service_version, get_all_services, save_draft, get_all_drafts, get_draft, delete_draft, verify_admin_credentials
 app = FastAPI(title="AI Government Service Navigator")
 
 @app.on_event("startup")
@@ -156,21 +159,71 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail="Error generating response. Please make sure GEMINI_API_KEY is set in .env")
 
 # --- Phase 3 & 4: Admin endpoints ---
+from fastapi import Header
+import jwt
+from datetime import datetime, timedelta
+
+JWT_SECRET = os.getenv("JWT_SECRET", "super-secret-key-change-me")
+ALGORITHM = "HS256"
+
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(hours=24)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
+
+@router.post("/api/v1/admin/login")
+def admin_login(req: AdminLoginRequest):
+    if verify_admin_credentials(req.username, req.password):
+        token = create_access_token(data={"sub": req.username})
+        return {"token": token}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+def verify_admin(authorization: str):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    token = authorization.split("Bearer ")[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        if not payload.get("sub"):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+def fetch_url(url: str):
+    try:
+        res = requests.get(url)
+        return res.json()
+    except Exception as e:
+        if "dummy-gov-webapp" in url:
+            local_url = url.replace("dummy-gov-webapp", "127.0.0.1")
+            res = requests.get(local_url)
+            return res.json()
+        raise e
 
 @router.get("/api/v1/admin/drafts", response_model=List[DraftUpdate])
-def get_drafts():
+def get_drafts(authorization: Optional[str] = Header(None)):
+    verify_admin(authorization)
     return get_all_drafts()
 
 @router.get("/api/v1/admin/services")
-def get_services():
+def get_services(authorization: Optional[str] = Header(None)):
+    verify_admin(authorization)
     return get_all_services()
 
 class ConnectApiRequest(BaseModel):
     master_api_url: str
 
 @router.post("/api/v1/admin/scan-updates")
-def scan_updates(req: ConnectApiRequest):
+def scan_updates(req: ConnectApiRequest, authorization: Optional[str] = Header(None)):
     """Crawler: Fetches KB from the dummy Gov Portal API, compares version, and auto-drafts updates."""
+    verify_admin(authorization)
     
     url = req.master_api_url.strip() if req.master_api_url else "http://dummy-gov-webapp:8001/dummygov/api/master"
     
@@ -185,8 +238,7 @@ def scan_updates(req: ConnectApiRequest):
         url = url.replace("0.0.0.0:", "dummy-gov-webapp:")
 
     try:
-        master_res = requests.get(url)
-        master_data = master_res.json()
+        master_data = fetch_url(url)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not connect to parent API: {e}")
         
@@ -204,8 +256,7 @@ def scan_updates(req: ConnectApiRequest):
             kb_url = f"http://dummy-gov-webapp:8001/dummygov/{path_suffix}"
             
         try:
-            kb_res = requests.get(kb_url)
-            kb_data = kb_res.json()
+            kb_data = fetch_url(kb_url)
         except Exception as e:
             logger.error(f"Failed to fetch KB from {kb_url}: {e}")
             continue
@@ -267,7 +318,8 @@ def scan_updates(req: ConnectApiRequest):
     return {"message": f"Scan complete. Found {new_drafts_generated} updates.", "count": new_drafts_generated}
 
 @router.post("/api/v1/admin/drafts/{draft_id}/approve")
-def approve_draft(draft_id: str):
+def approve_draft(draft_id: str, authorization: Optional[str] = Header(None)):
+    verify_admin(authorization)
     draft = get_draft(draft_id)
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -289,7 +341,8 @@ def approve_draft(draft_id: str):
     return {"message": "Draft approved and knowledge base updated."}
 
 @router.post("/api/v1/admin/drafts/{draft_id}/reject")
-def reject_draft(draft_id: str):
+def reject_draft(draft_id: str, authorization: Optional[str] = Header(None)):
+    verify_admin(authorization)
     draft = get_draft(draft_id)
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")

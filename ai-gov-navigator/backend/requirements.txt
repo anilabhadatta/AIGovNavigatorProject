@@ -6,3 +6,5 @@ sentence-transformers
 langdetect
 google-genai
 python-dotenv
+requests
+PyJWT

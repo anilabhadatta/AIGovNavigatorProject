@@ -8,6 +8,9 @@ import sqlite3
 import json
 import os
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configure central logging to project root
 log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app.log"))
@@ -48,7 +51,17 @@ def init_db():
                     updated_at TEXT,
                     FOREIGN KEY(app_id) REFERENCES apps(app_id)
                  )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS user_creds (
+                    username TEXT PRIMARY KEY,
+                    password TEXT
+                 )''')
     conn.commit()
+    
+    # Seed user data if empty
+    c.execute("SELECT COUNT(*) FROM user_creds")
+    if c.fetchone()[0] == 0:
+        c.execute("INSERT INTO user_creds (username, password) VALUES ('admin', 'admin')")
+        conn.commit()
     
     # Seed data if empty
     c.execute("SELECT COUNT(*) FROM apps")
@@ -137,14 +150,55 @@ def get_app_kb(app_id: str):
         })
     return {"app_id": app_id, "knowledgebase": kb_entries}
 
+from fastapi import Header
+import jwt
+from datetime import datetime, timedelta
+
+JWT_SECRET = os.getenv("JWT_SECRET", "dummy-secret-key-change-me")
+ALGORITHM = "HS256"
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(hours=24)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@router.post("/api/login")
+def login(req: LoginRequest):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT * FROM user_creds WHERE username=? AND password=?", (req.username, req.password))
+    user = c.fetchone()
+    conn.close()
+    if user:
+        token = create_access_token(data={"sub": req.username})
+        return {"token": token}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
 class UpdateKBRequest(BaseModel):
     service_id: str
     service_name: str
     content: dict
 
 @router.post("/api/admin/app/{app_id}/kb")
-def admin_update_kb(app_id: str, req: UpdateKBRequest):
+def admin_update_kb(app_id: str, req: UpdateKBRequest, authorization: Optional[str] = Header(None)):
     """Admin endpoint for the dummy portal to modify their own KB (Simulates real gov updates)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    token = authorization.split("Bearer ")[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        if not payload.get("sub"):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
@@ -182,14 +236,22 @@ def get_admin_ui():
         </style>
     </head>
     <body class="p-8 text-gray-800">
-        <div class="max-w-6xl mx-auto">
+        <div id="login-container" class="max-w-sm mx-auto mt-20 glass p-8 rounded-xl shadow-md">
+            <h2 class="text-2xl font-bold text-green-800 mb-6 text-center">Admin Login</h2>
+            <input type="text" id="username" placeholder="Username" class="w-full mb-4 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+            <input type="password" id="password" placeholder="Password" class="w-full mb-6 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+            <button onclick="login()" class="w-full bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700 transition">Login</button>
+        </div>
+
+        <div class="max-w-6xl mx-auto" id="main-content" style="display: none;">
             <header class="mb-8 flex items-center justify-between">
                 <div>
                     <h1 class="text-3xl font-bold text-green-800 tracking-tight">National e-Governance Admin</h1>
                     <p class="text-gray-600 mt-1">Manage Source-of-Truth Knowledge Base for all Portals</p>
                 </div>
-                <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-semibold border border-green-200">
-                    Master API: <span class="font-mono font-normal">/dummygov/api/master</span>
+                <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-semibold border border-green-200 flex items-center gap-4">
+                    <span>Master API: <span class="font-mono font-normal">/dummygov/api/master</span></span>
+                    <button onclick="logout()" class="text-sm underline text-green-700 hover:text-green-900">Logout</button>
                 </div>
             </header>
 
@@ -197,10 +259,48 @@ def get_admin_ui():
         </div>
 
         <script>
+            async function login() {
+                const u = document.getElementById('username').value;
+                const p = document.getElementById('password').value;
+                try {
+                    const res = await fetch('/dummygov/api/login', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({username: u, password: p})
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        localStorage.setItem('adminToken', data.token);
+                        checkAuth();
+                    } else {
+                        alert("Invalid credentials");
+                    }
+                } catch(e) { alert("Error logging in"); }
+            }
+
+            function logout() {
+                localStorage.removeItem('adminToken');
+                checkAuth();
+            }
+
+            function checkAuth() {
+                if (localStorage.getItem('adminToken')) {
+                    document.getElementById('login-container').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    if (document.getElementById('apps-container').innerHTML === '') {
+                        fetchApps();
+                    }
+                } else {
+                    document.getElementById('login-container').style.display = 'block';
+                    document.getElementById('main-content').style.display = 'none';
+                }
+            }
+
             async function fetchApps() {
                 const res = await fetch('/dummygov/api/master');
                 const data = await res.json();
                 
+                document.getElementById('apps-container').innerHTML = '';
                 for (const app of data.apps) {
                     const kbRes = await fetch(app.kb_api_url);
                     const kbData = await kbRes.json();
@@ -247,22 +347,31 @@ def get_admin_ui():
                     const contentJson = JSON.parse(contentStr);
                     const res = await fetch(`/dummygov/api/admin/app/${appId}/kb`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                        },
                         body: JSON.stringify({
                             service_id: serviceId,
                             service_name: serviceName,
                             content: contentJson
                         })
                     });
+                    
+                    if (!res.ok) {
+                        throw new Error("Unauthorized or server error");
+                    }
+                    
                     const data = await res.json();
                     alert(data.message + " New version: v" + data.version);
                     location.reload();
                 } catch (e) {
-                    alert('Invalid JSON! Please check your formatting.');
+                    alert('Update failed! Please check your formatting or login session.');
                 }
             }
 
-            fetchApps();
+            // Initialize
+            checkAuth();
         </script>
     </body>
     </html>

@@ -35,24 +35,37 @@ export default function AdminPanel() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'pending' | 'active'>('pending')
   const [parentApiUrl, setParentApiUrl] = useState('/dummygov/api/master')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+
+  const getHeaders = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem('navAdminToken')}` }
+  })
 
   const fetchData = async () => {
     try {
       const [draftsRes, servicesRes] = await Promise.all([
-        axios.get('/aigov/api/v1/admin/drafts'),
-        axios.get('/aigov/api/v1/admin/services')
+        axios.get('/aigov/api/v1/admin/drafts', getHeaders()),
+        axios.get('/aigov/api/v1/admin/services', getHeaders())
       ])
       setDrafts(draftsRes.data)
       setServices(servicesRes.data)
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
+      if (err.response?.status === 401) handleLogout()
     } finally {
       setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchData()
+    if (localStorage.getItem('navAdminToken')) {
+      setIsAuthenticated(true)
+      fetchData()
+    } else {
+      setIsLoading(false)
+    }
   }, [])
 
   const handleScan = async () => {
@@ -60,7 +73,7 @@ export default function AdminPanel() {
     try {
       const res = await axios.post('/aigov/api/v1/admin/scan-updates', {
         master_api_url: parentApiUrl
-      })
+      }, getHeaders())
       await fetchData()
       alert(res.data.message)
       setActiveTab('pending')
@@ -74,7 +87,7 @@ export default function AdminPanel() {
 
   const handleApprove = async (id: string) => {
     try {
-      await axios.post(`/aigov/api/v1/admin/drafts/${id}/approve`)
+      await axios.post(`/aigov/api/v1/admin/drafts/${id}/approve`, {}, getHeaders())
       await fetchData()
       alert('Update approved and knowledge base updated!')
     } catch (err) {
@@ -84,15 +97,48 @@ export default function AdminPanel() {
 
   const handleReject = async (id: string) => {
     try {
-      await axios.post(`/aigov/api/v1/admin/drafts/${id}/reject`)
+      await axios.post(`/aigov/api/v1/admin/drafts/${id}/reject`, {}, getHeaders())
       setDrafts(prev => prev.filter(d => d.id !== id))
     } catch (err) {
       console.error(err)
     }
   }
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const res = await axios.post('/aigov/api/v1/admin/login', { username, password })
+      localStorage.setItem('navAdminToken', res.data.token)
+      setIsAuthenticated(true)
+      setIsLoading(true)
+      fetchData()
+    } catch (err) {
+      alert("Invalid credentials")
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('navAdminToken')
+    setIsAuthenticated(false)
+    setDrafts([])
+    setServices([])
+  }
+
   if (isLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" size={32}/></div>
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-md mx-auto mt-20 p-8 glass rounded-2xl shadow-sm border border-gray-100">
+        <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">Navigator Admin Login</h2>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50" />
+          <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary-dark transition">Login</button>
+        </form>
+      </div>
+    )
   }
 
   return (
@@ -118,6 +164,7 @@ export default function AdminPanel() {
             {isScanning ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
             {isScanning ? 'Scanning...' : 'Scan for Updates'}
           </button>
+          <button onClick={handleLogout} className="text-sm underline text-red-500 hover:text-red-700 ml-2">Logout</button>
         </div>
       </div>
 

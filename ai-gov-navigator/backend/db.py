@@ -36,7 +36,6 @@ def init_db():
                     updated_at TEXT
                  )''')
                  
-    # create table for drafts
     c.execute('''CREATE TABLE IF NOT EXISTS drafts (
                     id TEXT PRIMARY KEY,
                     service_id TEXT,
@@ -49,7 +48,19 @@ def init_db():
                     raw_content TEXT,
                     new_version INTEGER
                  )''')
+                 
+    # create table for admin users
+    c.execute('''CREATE TABLE IF NOT EXISTS admin_users (
+                    username TEXT PRIMARY KEY,
+                    password TEXT
+                 )''')
     conn.commit()
+    
+    # Seed admin user if empty
+    c.execute("SELECT COUNT(*) FROM admin_users")
+    if c.fetchone()[0] == 0:
+        c.execute("INSERT INTO admin_users (username, password) VALUES ('admin', 'admin')")
+        conn.commit()
     
     # Check if empty, maybe load from seed_data.json just to have base state
     c.execute("SELECT COUNT(*) FROM kb_entries")
@@ -269,4 +280,12 @@ def delete_draft(draft_id: str):
     c.execute("DELETE FROM drafts WHERE id=?", (draft_id,))
     conn.commit()
     conn.close()
+
+def verify_admin_credentials(username: str, password: str) -> bool:
+    conn = sqlite3.connect(SQLITE_DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT 1 FROM admin_users WHERE username=? AND password=?", (username, password))
+    row = c.fetchone()
+    conn.close()
+    return row is not None
 
