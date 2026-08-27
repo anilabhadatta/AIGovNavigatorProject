@@ -92,12 +92,13 @@ def startup():
     init_db()
 
 @app.get("/api/master")
-def get_master_api_list():
+def get_master_api_list(request: Request):
     """Returns the list of apps and their specific KB API endpoints."""
+    base_url = str(request.base_url).rstrip("/")
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT app_id, app_name FROM apps")
-    apps = [{"app_id": row[0], "app_name": row[1], "kb_api_url": f"http://localhost:8001/api/app/{row[0]}/kb"} for row in c.fetchall()]
+    apps = [{"app_id": row[0], "app_name": row[1], "kb_api_url": f"{base_url}/api/app/{row[0]}/kb"} for row in c.fetchall()]
     conn.close()
     return {"apps": apps}
 

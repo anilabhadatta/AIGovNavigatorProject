@@ -154,7 +154,14 @@ class ConnectApiRequest(BaseModel):
 def scan_updates(req: ConnectApiRequest):
     """Crawler: Fetches KB from the dummy Gov Portal API, compares version, and auto-drafts updates."""
     
-    url = req.master_api_url or "http://localhost:8001/api/master"
+    url = req.master_api_url.strip() if req.master_api_url else "http://dummy-gov-webapp:8001/api/master"
+    
+    # Auto-fix for docker networking
+    if "localhost:" in url or "127.0.0.1:" in url or "0.0.0.0:" in url:
+        url = url.replace("localhost:", "dummy-gov-webapp:")
+        url = url.replace("127.0.0.1:", "dummy-gov-webapp:")
+        url = url.replace("0.0.0.0:", "dummy-gov-webapp:")
+
     try:
         master_res = requests.get(url)
         master_data = master_res.json()
