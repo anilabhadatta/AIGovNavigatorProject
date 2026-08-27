@@ -12,36 +12,38 @@ function App() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.06)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
 
         <div className="relative z-10 flex min-h-screen flex-col">
-          <header className="flex items-center justify-between px-5 py-4 sm:px-8">
-            <Link to="/" className="group inline-flex items-center gap-3 rounded-full bg-white/6 px-4 py-2 backdrop-blur-xl transition-colors hover:bg-white/10">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-400 text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.3)]">
-                <MessageCircle size={20} />
-              </div>
-              <div className="text-left">
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/45">
-                  <Sparkles size={10} /> Government Navigator
+          <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/75 px-5 py-4 backdrop-blur-2xl sm:px-8">
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+              <Link to="/" className="group inline-flex items-center gap-3 rounded-full bg-white/6 px-4 py-2 backdrop-blur-xl transition-colors hover:bg-white/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-400 text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.3)]">
+                  <MessageCircle size={20} />
                 </div>
-                <h1 className="text-sm font-semibold tracking-tight text-white sm:text-base">AI Gov Navigator</h1>
+                <div className="text-left">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/45">
+                    <Sparkles size={10} /> Government Navigator
+                  </div>
+                  <h1 className="text-sm font-semibold tracking-tight text-white sm:text-base">AI Gov Navigator</h1>
+                </div>
+              </Link>
+
+              <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.28em] text-cyan-100/80">
+                Powered by CodeX
               </div>
-            </Link>
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.28em] text-cyan-100/80">
-              Powered by CodeX
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/6 p-1 backdrop-blur-xl ring-1 ring-white/10">
-              <Link
-                to="/"
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                <MessageCircle size={16} /> Citizen Chat
-              </Link>
-              <Link
-                to="/admin"
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                <LayoutDashboard size={16} /> Admin Panel
-              </Link>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/6 p-1 backdrop-blur-xl ring-1 ring-white/10">
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <MessageCircle size={16} /> Citizen Chat
+                </Link>
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <LayoutDashboard size={16} /> Admin Panel
+                </Link>
+              </div>
             </div>
           </header>
 
